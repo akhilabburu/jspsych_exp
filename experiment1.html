@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Decision Making Experiment</title>
+    <script src="jspsych/jspsych.js"></script>
+    <script src="jspsych/plugin-html-keyboard-response.js"></script>
+    <script src="jspsych/plugin-image-keyboard-response.js"></script>
+    <script src="jspsych/plugin-fullscreen.js"></script>
+    <script src="jspsych/plugin-survey-text.js"></script>
+   <script src="jspsych/plugin-html-button-response.js"></script>
+    <link href="jspsych/jspsych.css" rel="stylesheet" type="text/css" />
+    <link href="css/style.css" rel="stylesheet" type="text/css" />
+
+    <style>
+        body {background-color: black; color: white;}
+      </style>
+  </head>
+  <body></body>
+  <script>
+    // Check for pilot mode in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const pilotMode = urlParams.has('pilot');
+    
+    function getTrialDuration(defaultDuration) {
+      return pilotMode ? 0 : defaultDuration;
+    }
+
+    function shuffle(array) {
+      let currentIndex = array.length,  randomIndex;
+      // While there remain elements to shuffle.
+      while (currentIndex != 0) {
+        // Pick a remaining element.
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex--;
+        // And swap it with the current element.
+        [array[currentIndex], array[randomIndex]] = [
+          array[randomIndex], array[currentIndex]];
+      }
+      return array;
+    }
+
+    var isPositive = function(whatever){
+        return whatever > 0 ? "+" + whatever : whatever;
+    }
+
+    function saveData(name, data) {
+  // Check if running locally (file:// protocol) or on a server (http:// protocol)
+  if (window.location.protocol === 'file:') {
+    // Local mode - download as CSV
+    const filename = name + Date.now() + ".csv";
+    const blob = new Blob([data], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    console.log("Data saved locally as: " + filename);
+  } else {
+    // Server mode - use PHP
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', 'php/write_data1.php');
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.onload = function() {
+      if (xhr.status === 200) {
+        try {
+          var response = JSON.parse(xhr.responseText);
+          if (response.status !== 'success') {
+            console.error('Server save failed:', response.message);
+            // Fallback to local download if server fails
+            jsPsych.data.get().localSave('csv', name + Date.now() + '.csv');
+          }
+        } catch (e) {
+          console.error('Error parsing server response', e);
+          jsPsych.data.get().localSave('csv', name + Date.now() + '.csv');
+        }
+      } else {
+        console.error('Server error:', xhr.status);
+        jsPsych.data.get().localSave('csv', name + Date.now() + '.csv');
+      }
+    };
+    xhr.onerror = function() {
+      console.error('Network error - saving locally instead');
+      jsPsych.data.get().localSave('csv', name + Date.now() + '.csv');
+    };
+    xhr.send(JSON.stringify({filedata: data}));
+  }
+}
+  
+
+    var jsPsych = initJsPsych({
+        on_finish: function() {
+          saveData("DM1_", jsPsych.data.get().csv());
+          document.writeln("Thanks for completing the experiment, you may now close the window.")
+        },
+        //show_progress_bar: true,
+    });
+
+    //Here's all the data; Insert the Values here
+    data_block1 = [[-10, 10], [-10, 15], [-10, 20], [-10, 25], [-15, 10], [-15, 15], [-15, 20], [-15, 25], [-20, 10], [-20, 15], [-20, 20], [-20, 25], [-25, 10], [-25, 15], [-25, 20], [-25, 25],  [10, -10], [10, -15], [10, -20], [10, -25], [15, -10], [15, -15], [15, -20], [15,-25], [20, -10], [20, -15], [20, -20], [20, -25], [25, -10], [25, -15], [25, -20], [25, -25]]
+    data_block2 = [[-80, 80], [-80, 85], [-80, 90], [-80, 95], [-85, 80], [-85, 85], [-85, 90], [-85, 95], [-90, 80], [-90, 85], [-90, 90], [-90, 95], [-95, 80], [-95, 85], [-95, 90], [-95, 95],   [80, -80], [80, -85], [80, -90], [80, -95], [85, -80], [85, -85], [85, -90], [85, -95], [90, -80], [90, -85], [90, -90], [90, -95], [95, -80], [95, -85], [95, -90], [95, -95]]
+
+    
+    //Shuffling them
+    shuffle(data_block1); 
+    shuffle(data_block2);
+    
+
+    //Dividing the data into 5 sets
+    set1 = data_block1
+    set2 = data_block2
+    //set3 = data.slice(80,120);
+    //set4 = data.slice(120,160);
+    //set5 = data.slice(160,200);
+
+    name = parseInt(Math.random(1000)*100000);
+
+  
+    
+    /* create timeline */
+    var timeline = [];
+    //Full Screen Enter
+    var enter_fullscreen = {
+      type: jsPsychFullscreen,
+      fullscreen_mode: true
+    }
+    //Full screen Exit
+    var exit_fullscreen = {
+      type: jsPsychFullscreen,
+      fullscreen_mode: false,
+      delay: 0
+    }
+
+    timeline.push(enter_fullscreen);
+
+    /* creating Inter trial interval*/
+    var blankscreen={
+      type: jsPsychHtmlKeyboardResponse,
+      stimulus: '',
+      choices: "NO_KEYS",
+      trial_duration: pilotMode ? 0 : 1000
+    };  
+    /* define welcome message trial */
+    var welcome_nores = {
+      type: jsPsychHtmlKeyboardResponse,
+      stimulus: "  In this study, we are pilot testing Game of Chance. <br> This game comprises of multiple rounds. In each round, there will be a hypothetical coin toss,<br> if it lands on head the player will gain a fixed amount of money and <br> if it lands on tails the player will lose a fixed amount of money. <br> <br> In this game your task is to decide whether you would like to play that round (accept) or not (reject). <br><br><br><br><br> &nbsp;",
+      trial_duration: pilotMode ? 0 : 10000,
+      choices: "NO_KEYS"
+    };
+    timeline.push(welcome_nores);
+
+    var welcome_res = {
+      type: jsPsychHtmlKeyboardResponse,
+      stimulus: "  In this study, we are pilot testing Game of Chance. <br> This game comprises of multiple rounds. In each round, there will be a hypothetical coin toss,<br> if it lands on head the player will gain a fixed amount of money and <br> if it lands on tails the player will lose a fixed amount of money. <br> <br> In this game your task is to decide whether you would like to play that round (accept) or not (reject). <br><br><br><br><br> Press space key to continue ",
+      choices: [" "]
+    };
+    timeline.push(welcome_res);
+    
+   
+    /* define consent screen*/
+    var consent = {
+      type: jsPsychHtmlKeyboardResponse,
+      stimulus: "Do you agree to participate in this hypothetical game and consent using your response for the purpose of this study?",
+      choices: ['y','n'],
+      prompt: "<div style=\"padding-top: 100px;\">Press Y for Yes <br><br> Press N for No </div>"
+    };
+    timeline.push(consent);
+   
+    /* personal details*/
+    var Id = {
+      type: jsPsychSurveyText,
+      questions: [
+        {prompt: 'Enter your Participant ID', required: true}
+        //{prompt: 'Name', required: true}
+      ],
+    };
+
+    timeline.push(Id)
+  
+
+    /* define instructions trial */
+    var instructions_nres = {
+      type: jsPsychHtmlKeyboardResponse,
+      stimulus: `<p>Example<br><br> You are given hypothetical amount of Rs.150 to play the game. <br><br> In a round with +20INR and -10INR selected as the amount,<br> you have a 50% chance of gaining 20INR (if the coin lands on heads) <br>and a 50% chance of losing -10INR (if the coin lands on tails)<br> You will be asked to indicate your choice using the appropriate key press.<br><br><br> &nbsp;</p>`,
+      trial_duration: pilotMode ? 0 : 10000,
+      choices: "NO_KEYS"
+    };
+    timeline.push(instructions_nres);
+    
+
+    var instructions_res = {
+      type: jsPsychHtmlKeyboardResponse,
+      stimulus: `
+        <p>Example<br><br> You are given hypothetical amount of Rs.150 to play the game. <br><br> In a round with +20INR and -10INR selected as the amount,<br> you have a 50% chance of gaining 20INR (if the coin lands on heads) <br>and a 50% chance of losing -10INR (if the coin lands on tails)<br> You will be asked to indicate your choice using the appropriate key press.<br><br><br> Press space to continue. </p>
+      `,
+      choices: [" "],
+    };
+    timeline.push(instructions_res);
+    
+    //Block 1
+    var block1_start_msg = {
+      type: jsPsychHtmlKeyboardResponse,
+      stimulus: "In the next screen, you will be shown two values with a '+' and '-' sign. <br>The positive and negative values signify the amount you can gain and lose respectively.<br> Given there is a 50% chance of gaining or losing specified money, you must decide whether you would like to play that round? <br><br> You are given Rs. 150 (hypothetically) to play the game. Please respond for each round independently<br><br><br>  At the end of the game, one of the trials will be randomly selected to determine the final outcome.<br> So please consider each round seriously.<br><br>If you have any doubt regarding the instructions, ask the researcher now<br> If you are ready to play, <br> <br><br>press space to start the game. "
+    };
+
+    block1_trials = [];
+    for (i=0; i<set1.length; i++){
+            var block_trls = {
+            type: jsPsychHtmlKeyboardResponse,
+            stimulus: "<div class=\"stims\" style=\"font-size: 150px;\">" + isPositive(set1[i][0]) + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" + isPositive(set1[i][1]) + "</div>",
+            choices: ['m', 'z'],
+            data: {condition: "V: " + set1[i][0] + " " + set1[i][1]},
+            prompt: "<div style=\"padding-top: 100px;\">Press M for accept <br><br> Press Z for reject </div>"
+        }
+            block1_trials.push(block_trls)
+            block1_trials.push(blankscreen)
+    }
+
+    //Block 2
+  //  var block2_start_msg = {
+    //   type: jsPsychHtmlKeyboardResponse,
+      // stimulus: "Take a break, the next round will start after one minute",
+      // choices: [],
+     //  trial_duration: pilotMode ? 0 : 60000
+    //};
+
+
+    var block2_start_msg = {
+   timeline: [
+      {
+         type: jsPsychHtmlKeyboardResponse,
+         stimulus: "Take a break, the next round will start after one minute.",
+         choices: "NO_KEYS",
+         trial_duration: pilotMode ? 0 : 60000
+      },
+      {
+         type: jsPsychHtmlKeyboardResponse,
+         stimulus: "Press space to continue.",
+         choices: [" "]
+      }
+   ]
+};
+
+    block2_trials = [];
+    for (i=0; i<set2.length; i++){
+            var block_trls = {
+            type: jsPsychHtmlKeyboardResponse,
+            stimulus: "<div class=\"stims\"style=\"font-size: 150px;\">" + isPositive( set2[i][0]) + "&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"  + isPositive( set2[i][1]) + "</div>",
+            choices: ['m', 'z'],
+            data: {condition: "V: " + set2[i][0] + " " + set2[i][1]},
+            prompt: "<div style=\"padding-top: 100px;\">Press M for accept <br><br> Press Z for reject </div>"
+        }
+            block2_trials.push(block_trls)
+            block2_trials.push(blankscreen)
+    }
+
+    //Pushing Block 1 to the timeline
+    timeline.push(block1_start_msg);
+    for(i=0; i<block1_trials.length; i++){
+        timeline.push(block1_trials[i])
+    }
+
+    //Pushing Block 2 to the timeline
+    timeline.push(block2_start_msg);
+    for(i=0; i<block2_trials.length; i++){
+        timeline.push(block2_trials[i])
+    }
+
+    timeline.push(exit_fullscreen);
+    /* start the experiment */
+    jsPsych.run(timeline);
+  </script>
+</html>
